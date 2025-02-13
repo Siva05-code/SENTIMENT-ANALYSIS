@@ -3,7 +3,7 @@
 *COMPANY*: CODTECH IT SOLUTIONS
 
 *NAME*: SIVAKARTHICK B
-I
+
 *INTERN ID*: : CT08FYO
 
 *DOMAIN*: MACHINE LEARNING
@@ -95,3 +95,7 @@ Sentiment analysis is widely applicable across various industries, enabling busi
 ### Conclusion
 This project effectively demonstrates the implementation of sentiment analysis on Amazon product reviews using logistic regression. By leveraging NLP techniques and machine learning models, customer sentiments are accurately classified, enabling businesses to gain insights into customer feedback. The methodology used in this project can be extended to other domains such as finance, healthcare, and social media analysis, showcasing the versatility and impact of sentiment analysis in today's data-driven world.
 
+
+### **Output**
+
+[Result.csv](https://github.com/user-attachments/files/18786160/Result.csv)
