@@ -1,18 +1,5 @@
 # SENTIMENT-ANALYSIS
 
-*COMPANY*: CODTECH IT SOLUTIONS
-
-*NAME*: SIVAKARTHICK B
-
-*INTERN ID*: : CT08FYO
-
-*DOMAIN*: MACHINE LEARNING
-
-*DURATION*: 4 WEEEKS
-
-*MENTOR*: NEELA SANTOSH
-
-
 **Sentiment Analysis on Amazon Reviews Using Logistic Regression**
 
 ### Introduction
