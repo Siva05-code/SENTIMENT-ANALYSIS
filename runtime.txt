@@ -1,0 +1,9 @@
+# Deployment Configuration for Heroku
+
+web: gunicorn backend.app:app --log-file -
+
+# Set Python version
+python-3.10.13
+
+# Additional environment configuration
+release: python backend/sentiment_model.py load_models
