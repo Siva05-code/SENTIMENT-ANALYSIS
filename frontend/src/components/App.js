@@ -18,7 +18,7 @@ function App() {
   const checkAPIHealth = async () => {
     try {
       const bac = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      const response = await fetch('bac/health');
+      const response = await fetch(`${bac}/health`);
       if (response.ok) {
         setApiStatus('healthy');
       } else {
