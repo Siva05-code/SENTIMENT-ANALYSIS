@@ -9,9 +9,11 @@ from typing import List, Optional
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field, ConfigDict
 import pandas as pd
 import tempfile
+import shutil
 
 from backend.config import (
     CORS_ORIGINS, API_TITLE, API_VERSION, API_DESCRIPTION, SENTIMENT_EMOJI
@@ -53,6 +55,8 @@ class BatchSentimentResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Model for health check response"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     status: str
     version: str
     model_trained: bool
@@ -60,6 +64,8 @@ class HealthResponse(BaseModel):
 
 class ModelStatsResponse(BaseModel):
     """Model for model statistics response"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     status: str
     model_type: str
     vectorizer: str
@@ -86,6 +92,10 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Sentiment Analyzer API")
 
+
+# Create results directory
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -142,11 +152,13 @@ async def analyze_sentiment(request: TextInput):
     # Validate input
     is_valid, error_msg = validate_input(request.text)
     if not is_valid:
+        logger.warning(f"Invalid input: {error_msg}")
         raise HTTPException(status_code=400, detail=error_msg)
     
     try:
         model = get_model()
         if not model.is_trained:
+            logger.error("Model not trained - cannot process request")
             raise HTTPException(
                 status_code=503,
                 detail="Model not trained. Please train the model first."
@@ -162,8 +174,13 @@ async def analyze_sentiment(request: TextInput):
             "emoji": emoji
         }
     
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.error(f"Validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
     except Exception as e:
-        logger.error(f"Error analyzing sentiment: {str(e)}")
+        logger.error(f"Error analyzing sentiment: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error analyzing sentiment")
 
 
@@ -281,15 +298,20 @@ async def analyze_csv_file(file: UploadFile = File(...)):
             df = pd.read_csv(tmp.name)
             results_df = model.predict_dataframe(df, text_column='Text')
             
-            # Save results
-            output_path = tmp.name.replace('.csv', '_results.csv')
+            # Save results to persistent location
+            import uuid
+            unique_id = str(uuid.uuid4())[:8]
+            output_filename = f"results_{unique_id}.csv"
+            output_path = os.path.join(RESULTS_DIR, output_filename)
             results_df.to_csv(output_path, index=False)
             
             # Return results as response
             return {
                 "status": "success",
                 "rows_processed": len(results_df),
-                "download_url": f"/download/{os.path.basename(output_path)}"
+                "filename": output_filename,
+                "download_url": f"/api/v1/download/{output_filename}",
+                "preview": results_df.head(10).to_dict('records')
             }
     
     except HTTPException:
@@ -304,6 +326,42 @@ async def analyze_csv_file(file: UploadFile = File(...)):
                 await file.close()
             except:
                 pass
+
+
+@app.get("/api/v1/download/{filename}")
+async def download_results(filename: str):
+    """
+    Download CSV results file.
+    
+    Args:
+        filename: Name of the results file to download
+        
+    Returns:
+        CSV file as download
+    """
+    try:
+        # Validate filename to prevent directory traversal attacks
+        if "../" in filename or "\\" in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+        
+        file_path = os.path.join(RESULTS_DIR, filename)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Return file as download
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type='text/csv'
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading file: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error downloading file")
 
 
 @app.post("/api/v1/train")

@@ -49,17 +49,24 @@ class SentimentModel:
             bool: True if models loaded successfully, False otherwise
         """
         try:
+            logger.info(f"Attempting to load model from {MODEL_PATH}")
+            logger.info(f"Attempting to load vectorizer from {TFIDF_PATH}")
+            logger.info(f"Model path exists: {MODEL_PATH.exists()}")
+            logger.info(f"Vectorizer path exists: {TFIDF_PATH.exists()}")
+            
             if MODEL_PATH.exists() and TFIDF_PATH.exists():
                 self.model = joblib.load(MODEL_PATH)
                 self.tfidf = joblib.load(TFIDF_PATH)
                 self.is_trained = True
                 logger.info("Pre-trained model loaded successfully")
+                logger.info(f"Model type: {type(self.model)}")
+                logger.info(f"Vectorizer type: {type(self.tfidf)}")
                 return True
             else:
-                logger.warning("Pre-trained model files not found")
+                logger.warning(f"Pre-trained model files not found. MODEL_PATH exists: {MODEL_PATH.exists()}, TFIDF_PATH exists: {TFIDF_PATH.exists()}")
                 return False
         except Exception as e:
-            logger.error(f"Error loading pre-trained model: {str(e)}")
+            logger.error(f"Error loading pre-trained model: {type(e).__name__}: {str(e)}", exc_info=True)
             return False
     
     def train(self, data_path: Optional[Path] = None) -> Dict[str, Any]:
@@ -163,23 +170,29 @@ class SentimentModel:
             Tuple[str, float]: Sentiment label and confidence score
         """
         if not self.is_trained or self.model is None or self.tfidf is None:
-            logger.error("Model not trained or loaded")
+            logger.error(f"Model not ready. is_trained={self.is_trained}, model={self.model is not None}, tfidf={self.tfidf is not None}")
             raise ValueError("Model not trained or loaded. Load or train model first.")
         
-        # Preprocess
-        cleaned_text = self.preprocessor.clean_text(text)
-        
-        # Vectorize
-        X = self.tfidf.transform([cleaned_text]).toarray()
-        
-        # Predict
-        prediction = self.model.predict(X)[0]
-        probabilities = self.model.predict_proba(X)[0]
-        confidence = float(np.max(probabilities))
-        
-        sentiment_label = SENTIMENT_LABELS.get(prediction, "Unknown")
-        
-        return sentiment_label, confidence
+        try:
+            # Preprocess
+            cleaned_text = self.preprocessor.clean_text(text)
+            logger.debug(f"Original: {text[:50]}... -> Cleaned: {cleaned_text[:50]}...")
+            
+            # Vectorize
+            X = self.tfidf.transform([cleaned_text]).toarray()
+            
+            # Predict
+            prediction = self.model.predict(X)[0]
+            probabilities = self.model.predict_proba(X)[0]
+            confidence = float(np.max(probabilities))
+            
+            sentiment_label = SENTIMENT_LABELS.get(prediction, "Unknown")
+            logger.debug(f"Prediction: {sentiment_label} (confidence: {confidence:.4f})")
+            
+            return sentiment_label, confidence
+        except Exception as e:
+            logger.error(f"Error during prediction: {type(e).__name__}: {str(e)}", exc_info=True)
+            raise
     
     def predict_batch(self, texts: list) -> list:
         """
