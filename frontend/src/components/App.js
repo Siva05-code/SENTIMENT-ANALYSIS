@@ -17,7 +17,8 @@ function App() {
 
   const checkAPIHealth = async () => {
     try {
-      const response = await fetch('http://localhost:8000/health');
+      const bac = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch('bac/health');
       if (response.ok) {
         setApiStatus('healthy');
       } else {
@@ -35,7 +36,7 @@ function App() {
       <div className="container">
         {apiStatus === 'error' && (
           <div className="alert alert-error">
-            ⚠️ Cannot connect to backend API. Make sure the backend server is running on http://localhost:8000
+            ⚠️ Cannot connect to backend API. Make sure the backend server is running
           </div>
         )}
 

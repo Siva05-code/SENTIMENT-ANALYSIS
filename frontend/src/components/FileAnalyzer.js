@@ -8,6 +8,8 @@ function FileAnalyzer() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [fileName, setFileName] = useState('');
+  const [results, setResults] = useState(null);
+  const [downloadUrl, setDownloadUrl] = useState('');
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -32,15 +34,15 @@ function FileAnalyzer() {
     setLoading(true);
     setError('');
     setSuccess('');
+    setResults(null);
 
     try {
       const response = await apiService.analyzeCSV(file);
       setSuccess(`✅ Successfully processed ${response.rows_processed} rows`);
+      setResults(response.preview);
+      setDownloadUrl(response.download_url);
       setFile(null);
       setFileName('');
-      
-      // Auto-download results (optional)
-      // window.location.href = response.download_url;
     } catch (err) {
       setError(err.message || 'Error uploading file');
     } finally {
@@ -53,6 +55,8 @@ function FileAnalyzer() {
     setFileName('');
     setError('');
     setSuccess('');
+    setResults(null);
+    setDownloadUrl('');
   };
 
   return (
@@ -102,6 +106,43 @@ function FileAnalyzer() {
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
+
+      {downloadUrl && (
+        <div className="results-section">
+          <div className="results-header">
+            <h3>📊 Analysis Results</h3>
+            <a href={downloadUrl} download className="btn btn-download">
+              ⬇️ Download CSV
+            </a>
+          </div>
+          
+          {results && results.length > 0 && (
+            <div className="results-preview">
+              <h4>Preview (First 10 rows)</h4>
+              <div className="table-wrapper">
+                <table className="results-table">
+                  <thead>
+                    <tr>
+                      {Object.keys(results[0]).map((key) => (
+                        <th key={key}>{key}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((row, idx) => (
+                      <tr key={idx}>
+                        {Object.values(row).map((value, i) => (
+                          <td key={i}>{String(value).substring(0, 50)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="info-section">
         <h3>CSV Format Requirements:</h3>
