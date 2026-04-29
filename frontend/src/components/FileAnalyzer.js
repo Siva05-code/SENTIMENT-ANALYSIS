@@ -111,7 +111,7 @@ function FileAnalyzer() {
         <div className="results-section">
           <div className="results-header">
             <h3>📊 Analysis Results</h3>
-            <a href={downloadUrl} download className="btn btn-download">
+            <a href={`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}${downloadUrl}`} download className="btn btn-download">
               ⬇️ Download CSV
             </a>
           </div>

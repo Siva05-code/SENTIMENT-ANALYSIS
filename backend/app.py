@@ -356,7 +356,8 @@ async def download_results(filename: str):
         return FileResponse(
             path=file_path,
             filename=filename,
-            media_type='text/csv'
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     
     except HTTPException:
