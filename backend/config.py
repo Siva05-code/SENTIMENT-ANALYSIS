@@ -5,13 +5,19 @@ Configuration file for the Sentiment Analyzer application
 import os
 from pathlib import Path
 
-# Project root directory
+# Project root directory - handle both local and HF Space environments
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Model paths
+# Model paths - with fallback for HuggingFace Spaces
 MODELS_DIR = BASE_DIR / "models"
 MODEL_PATH = MODELS_DIR / "sentiment_model.joblib"
 TFIDF_PATH = MODELS_DIR / "tfidf_vectorizer.joblib"
+
+# Log configuration for debugging
+import logging
+logger = logging.getLogger(__name__)
+logger.debug(f"Config BASE_DIR: {BASE_DIR}")
+logger.debug(f"Config MODELS_DIR: {MODELS_DIR}")
 
 # Data paths
 DATA_DIR = BASE_DIR / "data"
@@ -25,6 +31,8 @@ CORS_ORIGINS = [
     "http://localhost:5000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5000",
+    "https://siva0801-sentimentanalysis-api.hf.space",
+    "https://*.hf.space",
 ]
 
 # API settings

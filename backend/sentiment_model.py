@@ -53,18 +53,59 @@ class SentimentModel:
             logger.info(f"Attempting to load vectorizer from {TFIDF_PATH}")
             logger.info(f"Model path exists: {MODEL_PATH.exists()}")
             logger.info(f"Vectorizer path exists: {TFIDF_PATH.exists()}")
+            logger.info(f"MODEL_PATH absolute: {MODEL_PATH.absolute()}")
+            logger.info(f"TFIDF_PATH absolute: {TFIDF_PATH.absolute()}")
             
+            # Log dependency versions for debugging pickle compatibility
+            import sklearn
+            logger.info(f"scikit-learn version: {sklearn.__version__}")
+            logger.info(f"numpy version: {np.__version__}")
+            logger.info(f"joblib version: {joblib.__version__}")
+            
+            # Try loading from configured paths
             if MODEL_PATH.exists() and TFIDF_PATH.exists():
-                self.model = joblib.load(MODEL_PATH)
-                self.tfidf = joblib.load(TFIDF_PATH)
+                try:
+                    self.tfidf = joblib.load(TFIDF_PATH)
+                    logger.info("TF-IDF vectorizer loaded successfully")
+                except Exception as e:
+                    logger.error(f"Failed to load TF-IDF vectorizer: {type(e).__name__}: {str(e)}")
+                    raise
+                
+                try:
+                    self.model = joblib.load(MODEL_PATH)
+                    logger.info("Model loaded successfully")
+                except Exception as e:
+                    logger.error(f"Failed to load model: {type(e).__name__}: {str(e)}")
+                    raise
+                
                 self.is_trained = True
                 logger.info("Pre-trained model loaded successfully")
                 logger.info(f"Model type: {type(self.model)}")
                 logger.info(f"Vectorizer type: {type(self.tfidf)}")
                 return True
-            else:
-                logger.warning(f"Pre-trained model files not found. MODEL_PATH exists: {MODEL_PATH.exists()}, TFIDF_PATH exists: {TFIDF_PATH.exists()}")
-                return False
+            
+            # Try alternative path - check if running in HuggingFace Space
+            # HF Spaces might mount the repo at a different location
+            alt_model_path = Path("/home/user/app/models/sentiment_model.joblib")
+            alt_tfidf_path = Path("/home/user/app/models/tfidf_vectorizer.joblib")
+            
+            if alt_model_path.exists() and alt_tfidf_path.exists():
+                logger.warning("Using alternative HF Space path")
+                try:
+                    self.tfidf = joblib.load(alt_tfidf_path)
+                    self.model = joblib.load(alt_model_path)
+                    self.is_trained = True
+                    logger.info("Pre-trained model loaded from HF Space path")
+                    return True
+                except Exception as e:
+                    logger.error(f"Failed to load from HF Space path: {type(e).__name__}: {str(e)}")
+            
+            logger.warning(f"Pre-trained model files not found. Checked paths:")
+            logger.warning(f"  - {MODEL_PATH} (exists: {MODEL_PATH.exists()})")
+            logger.warning(f"  - {TFIDF_PATH} (exists: {TFIDF_PATH.exists()})")
+            logger.warning(f"  - {alt_model_path} (exists: {alt_model_path.exists()})")
+            logger.warning(f"  - {alt_tfidf_path} (exists: {alt_tfidf_path.exists()})")
+            return False
         except Exception as e:
             logger.error(f"Error loading pre-trained model: {type(e).__name__}: {str(e)}", exc_info=True)
             return False

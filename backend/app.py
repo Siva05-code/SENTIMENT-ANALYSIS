@@ -81,11 +81,13 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Starting Sentiment Analyzer API")
+    logger.info(f"Python path: {os.getcwd()}")
     model = get_model()
     if model.is_trained:
         logger.info("Model loaded and ready")
     else:
-        logger.warning("Model not trained. Please train the model.")
+        logger.error("⚠️ CRITICAL: Model not trained or failed to load! API will return 503 errors.")
+        logger.error("Please ensure model files (sentiment_model.joblib, tfidf_vectorizer.joblib) exist in the models/ directory.")
     
     yield
     
